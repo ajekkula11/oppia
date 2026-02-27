@@ -66,14 +66,21 @@ describe('datetimeformatter', () => {
     expect(df.getLocaleAbbreviatedDatetimeString(NOW_MILLIS - 1)).toBe(
       expectedDatetime
     );
-    expect(
-      df.getLocaleAbbreviatedDatetimeString(NOW_MILLIS + 48 * 60 * 60 * 1000)
-    ).toBe('Nov 23');
-    expect(
-      df.getLocaleAbbreviatedDatetimeString(
-        NOW_MILLIS - 365 * 24 * 60 * 60 * 1000
-      )
-    ).toBe('11/21/13');
+
+    let twoDaysLater = NOW_MILLIS + 48 * 60 * 60 * 1000;
+    let expectedAbbreviated = new Date(twoDaysLater).toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric',
+    });
+    expect(df.getLocaleAbbreviatedDatetimeString(twoDaysLater)).toBe(
+      expectedAbbreviated
+    );
+
+    let oneYearAgo = NOW_MILLIS - 365 * 24 * 60 * 60 * 1000;
+    let expectedOldDate = dayjs(new Date(oneYearAgo)).format('MM/DD/YY');
+    expect(df.getLocaleAbbreviatedDatetimeString(oneYearAgo)).toBe(
+      expectedOldDate
+    );
   });
 
   it('should provide date time hour in MMM D, h:mm A format', () => {
