@@ -900,6 +900,64 @@ class ExplorationSummariesHandlerTests(test_utils.GenericTestBase):
         self.assertEqual(summaries[0]['status'], 'public')
 
         self.logout()
+        
+    def test_unpublish_removes_exploration_from_summaries(self) -> None:
+        """Regression test: unpublishing an exploration must remove it
+        from the summaries endpoint so it is no longer visible to learners.
+        """
+        # Sign up a moderator who has unpublish permission.
+        self.signup(self.MODERATOR_EMAIL, self.MODERATOR_USERNAME)
+        self.set_moderators([self.MODERATOR_USERNAME])
+        moderator_id = self.get_user_id_from_email(self.MODERATOR_EMAIL)
+        moderator = user_services.get_user_actions_info(moderator_id)
+
+        # Before unpublish: PUBLIC_EXP_ID_EDITOR should appear in summaries.
+        self.login(self.VIEWER_EMAIL)
+
+        response_dict = self.get_json(
+            feconf.EXPLORATION_SUMMARIES_DATA_URL,
+            params={
+                'stringified_exp_ids': json.dumps(
+                    [self.PUBLIC_EXP_ID_EDITOR]
+                )
+            },
+        )
+        summaries = response_dict['summaries']
+        summary_ids = [s['id'] for s in summaries]
+        self.assertIn(self.PUBLIC_EXP_ID_EDITOR, summary_ids)
+
+        self.logout()
+
+        # Unpublish the exploration as moderator.
+        rights_manager.unpublish_exploration(
+            moderator, self.PUBLIC_EXP_ID_EDITOR
+        )
+
+        # After unpublish: exploration should NOT appear in summaries.
+        self.login(self.VIEWER_EMAIL)
+
+        response_dict = self.get_json(
+            feconf.EXPLORATION_SUMMARIES_DATA_URL,
+            params={
+                'stringified_exp_ids': json.dumps(
+                    [self.PUBLIC_EXP_ID_EDITOR]
+                )
+            },
+        )
+        summaries_after = response_dict['summaries']
+        summary_ids_after = [s['id'] for s in summaries_after]
+        self.assertNotIn(
+            self.PUBLIC_EXP_ID_EDITOR,
+            summary_ids_after,
+            msg=(
+                'Unpublished exploration %s should not appear in '
+                'public summaries.' % self.PUBLIC_EXP_ID_EDITOR
+            )
+        )
+
+        self.logout()
+
+  
 
     def test_can_get_editable_private_exploration_summaries(self) -> None:
         self.login(self.VIEWER_EMAIL)
