@@ -3356,7 +3356,20 @@ class EditExplorationTests(test_utils.GenericTestBase):
             )
         error_msg = 'You must be logged in to access this resource.'
         self.assertEqual(response['error'], error_msg)
-
+        
+    def test_non_owner_editor_cannot_edit_exploration(self) -> None:
+        self.signup('other_editor@test.com', 'othereditor')
+        with self.swap(self, 'testapp', self.mock_testapp):
+            self.login('other_editor@test.com')
+            response = self.get_json(
+                '/mock_edit_exploration/%s' % self.private_exp_id,
+                expected_status_int=401,
+            )
+        self.assertEqual(
+            response['error'],
+            'You do not have credentials to edit this exploration.'
+        )
+        self.logout()
 
 class ManageOwnAccountTests(test_utils.GenericTestBase):
     """Tests for decorator can_manage_own_account."""
