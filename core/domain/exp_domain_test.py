@@ -20158,3 +20158,81 @@ def create_old_schema_exploration(
     """
     exploration_dict = yaml.safe_load(yaml_content)
     return OldVersionExploration(exploration_id, exploration_dict)
+
+
+class ExplorationValidationBoundaryTests(test_utils.GenericTestBase):
+    """Unit tests for boundary and invalid-input validation in exp_domain."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.signup(self.OWNER_EMAIL, self.OWNER_USERNAME)
+        self.owner_id = self.get_user_id_from_email(self.OWNER_EMAIL)
+        self.exploration = self.save_new_valid_exploration(
+            'exp_id', self.owner_id, title='A title', category='Architecture'
+        )
+
+    def test_validate_with_empty_states_raises_error(self) -> None:
+        """Exploration with 0 states should raise a ValidationError."""
+        self.exploration.states = {}
+        with self.assertRaisesRegex(
+            utils.ValidationError, 'This exploration has no states.'
+        ):
+            self.exploration.validate()
+
+    def test_validate_with_nonexistent_destination_raises_error(self) -> None:
+        """A state whose default outcome points to a nonexistent state
+        should raise a ValidationError."""
+        init_state = self.exploration.states[self.exploration.init_state_name]
+        if init_state.interaction.default_outcome is not None:
+            init_state.interaction.default_outcome.dest = 'NonExistentState'
+            with self.assertRaisesRegex(
+                utils.ValidationError,
+                'The destination NonExistentState is not a valid state.',
+            ):
+                self.exploration.validate()
+
+    def test_validate_with_empty_title_strict_raises_error(self) -> None:
+        """Empty title should cause validation to fail in strict mode."""
+        self.exploration.title = ''
+        self.exploration.objective = 'Some objective'
+        self.exploration.category = 'Architecture'
+        with self.assertRaisesRegex(
+            utils.ValidationError, 'A title must be specified'
+        ):
+            self.exploration.validate(strict=True)
+
+    def test_validate_with_empty_objective_strict_raises_error(self) -> None:
+        """Empty objective should cause validation to fail in strict mode."""
+        self.exploration.objective = ''
+        self.exploration.title = 'A title'
+        self.exploration.category = 'Architecture'
+        with self.assertRaisesRegex(
+            utils.ValidationError, 'An objective must be specified'
+        ):
+            self.exploration.validate(strict=True)
+
+    def test_validate_with_empty_category_strict_raises_error(self) -> None:
+        """Empty category should cause validation to fail in strict mode."""
+        self.exploration.category = ''
+        self.exploration.title = 'A title'
+        self.exploration.objective = 'Some objective'
+        with self.assertRaisesRegex(
+            utils.ValidationError, 'A category must be specified'
+        ):
+            self.exploration.validate(strict=True)
+
+    def test_validate_with_invalid_language_code_raises_error(self) -> None:
+        """An unrecognized language code should raise a ValidationError."""
+        self.exploration.language_code = 'invalid_code'
+        with self.assertRaisesRegex(
+            utils.ValidationError, 'Invalid language_code'
+        ):
+            self.exploration.validate()
+
+    def test_validate_with_non_string_title_raises_error(self) -> None:
+        """A non-string title should raise a ValidationError."""
+        self.exploration.title = 123  # type: ignore[assignment]
+        with self.assertRaisesRegex(
+            utils.ValidationError, 'Expected title to be a string'
+        ):
+            self.exploration.validate()
