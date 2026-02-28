@@ -1020,6 +1020,66 @@ class LearnerProgressTests(test_utils.GenericTestBase):
             [self.EXP_ID_0, self.EXP_ID_3],
         )
 
+    def test_completing_exploration_twice_does_not_duplicate_it(self) -> None:
+
+        self.assertEqual(self._get_all_completed_exp_ids(self.user_id), [])
+
+        learner_progress_services.mark_exploration_as_completed(
+            self.user_id, self.EXP_ID_0
+        )
+        learner_progress_services.mark_exploration_as_completed(
+            self.user_id, self.EXP_ID_0
+        )
+
+        completed_ids = self._get_all_completed_exp_ids(self.user_id)
+        self.assertEqual(len(completed_ids), 1)
+        self.assertEqual(completed_ids, [self.EXP_ID_0])
+
+    def test_marking_incomplete_does_not_affect_completed_list(self) -> None:
+
+        learner_progress_services.mark_exploration_as_completed(
+            self.user_id, self.EXP_ID_0
+        )
+        self.assertEqual(
+            self._get_all_completed_exp_ids(self.user_id), [self.EXP_ID_0]
+        )
+
+        # Attempt to mark the already-completed exploration as incomplete.
+        learner_progress_services.mark_exploration_as_incomplete(
+            self.user_id, self.EXP_ID_0, 'some_state', 1
+        )
+
+        # Completed list should be unchanged.
+        self.assertEqual(
+            self._get_all_completed_exp_ids(self.user_id), [self.EXP_ID_0]
+        )
+        # Incomplete list should remain empty.
+        self.assertEqual(self._get_all_incomplete_exp_ids(self.user_id), [])
+
+    def test_incomplete_details_update_across_sessions(self) -> None:
+
+        learner_progress_services.mark_exploration_as_incomplete(
+            self.user_id, self.EXP_ID_0, 'first_state', 1
+        )
+        self.assertEqual(
+            self._get_all_incomplete_exp_ids(self.user_id), [self.EXP_ID_0]
+        )
+
+        # Simulate returning in a later session at a different state/version.
+        learner_progress_services.mark_exploration_as_incomplete(
+            self.user_id, self.EXP_ID_0, 'second_state', 2
+        )
+
+        # Should still be only one entry, not two.
+        self.assertEqual(
+            self._get_all_incomplete_exp_ids(self.user_id), [self.EXP_ID_0]
+        )
+
+        # Details should reflect the latest session.
+        details = self._get_incomplete_exp_details(self.user_id, self.EXP_ID_0)
+        self.assertEqual(details['state_name'], 'second_state')
+        self.assertEqual(details['version'], 2)
+
     def test_mark_collection_as_incomplete(self) -> None:
         self.assertEqual(
             self._get_all_incomplete_collection_ids(self.user_id), []
