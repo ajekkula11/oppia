@@ -27,7 +27,9 @@ from typing import List, TypedDict
 
 E2E_TEST_SUITES_THAT_ARE_NOT_RUN_IN_CI = ['full']
 ACCEPTANCE_TEST_SUITES_THAT_ARE_NOT_RUN_IN_CI: List[str] = []
-
+BACKEND_TEST_SHARDS_FILE_PATH = os.path.join(
+    os.getcwd(), 'scripts', 'backend_test_shards.json'
+)
 
 CI_TEST_SUITE_CONFIGS_DIRECTORY = os.path.join(
     os.getcwd(), 'core', 'tests', 'ci-test-suite-configs'
@@ -217,6 +219,43 @@ def get_acceptance_test_suites_from_acceptance_directory() -> (
     return sorted(acceptance_test_suites, key=lambda x: x['name'])
 
 
+def get_unregistered_backend_test_modules() -> List[str]:
+    """Returns backend *_test.py modules missing from backend_test_shards.json.
+
+    Scans all *_test.py files under core/, scripts/, extensions/, and the
+    repo root, converts each file path to a dotted module path, then compares
+    against every module registered in scripts/backend_test_shards.json.
+
+    Returns:
+        list(str). Sorted list of module paths that exist on disk but are
+        not registered in any shard, e.g. ['core.domain.new_feature_test'].
+    """
+    with open(BACKEND_TEST_SHARDS_FILE_PATH, 'r', encoding='utf-8') as f:
+        shards_data = json.load(f)
+
+    registered_modules: set = set()
+    for shard_list in shards_data.values():
+        registered_modules.update(shard_list)
+
+    discovered_modules: set = set()
+
+    dirs_to_scan = ['core', 'scripts', 'extensions']
+    for scan_dir in dirs_to_scan:
+        for dirpath, _, filenames in os.walk(scan_dir):
+            for filename in filenames:
+                if filename.endswith('_test.py'):
+                    filepath = os.path.join(dirpath, filename)
+                    module = filepath.replace(os.sep, '.')[: -len('.py')]
+                    discovered_modules.add(module)
+
+    for filename in os.listdir('.'):
+        if filename.endswith('_test.py'):
+            module = filename[: -len('.py')]
+            discovered_modules.add(module)
+
+    return sorted(discovered_modules - registered_modules)
+
+
 def compute_test_suites_difference(
     test_suites_from_config: List[TestSuiteDict],
     test_suites_from_directory: List[TestSuiteDict],
@@ -310,6 +349,22 @@ def main() -> None:
             'suites are not in sync: %s. Please update the CI config file for '
             'e2e tests at core/tests/ci-test-suite-configs/e2e.json with the '
             'suites listed above.' % (json.dumps(e2e_test_suites_difference))
+        )
+    print('Done!')
+
+    print(
+        'Checking all backend test modules are registered in '
+        'backend_test_shards.json...'
+    )
+    unregistered_modules = get_unregistered_backend_test_modules()
+    if len(unregistered_modules) > 0:
+        raise Exception(
+            'The following backend test modules exist on disk but are not '
+            'registered in any shard in scripts/backend_test_shards.json:\n'
+            '%s\n'
+            'Please add each module to the appropriate shard. See: '
+            'https://github.com/oppia/oppia/wiki/Backend-tests#shards'
+            % '\n'.join('  ' + m for m in unregistered_modules)
         )
     print('Done!')
 

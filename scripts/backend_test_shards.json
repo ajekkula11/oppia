@@ -204,7 +204,9 @@
         "core.jobs.batch_jobs.question_migration_jobs_test",
         "core.jobs.batch_jobs.subtopic_migration_jobs_test",
         "core.jobs.batch_jobs.reject_invalid_suggestion_and_delete_invalid_translation_jobs_test",
-        "core.domain.voiceover_cloud_task_services_test"
+        "core.domain.voiceover_cloud_task_services_test",
+        "core.tests.build_sources.extensions.base_test",
+        "core.tests.build_sources.extensions.models_test"
     ],
     "4": [
         "core.storage.learner_group.gae_models_test",

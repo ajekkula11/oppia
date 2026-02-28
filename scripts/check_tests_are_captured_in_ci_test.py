@@ -466,3 +466,97 @@ class CheckTestsAreCapturedInCiTest(test_utils.GenericTestBase):
                         with get_e2e_test_suites_from_ci_config_file_swap:
                             with get_e2e_test_suites_from_webdriverio_config_file_swap:  # pylint: disable=line-too-long
                                 check_tests_are_captured_in_ci.main()
+
+
+class GetUnregisteredBackendTestModulesTest(test_utils.GenericTestBase):
+    """Tests for get_unregistered_backend_test_modules."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.temp_dir = tempfile.TemporaryDirectory()
+
+        self.shards_file = os.path.join(self.temp_dir.name, 'shards.json')
+        with open(self.shards_file, 'w', encoding='utf-8') as f:
+            json.dump({'1': ['core.domain.foo_test']}, f)
+
+        self.shards_file_swap = self.swap(
+            check_tests_are_captured_in_ci,
+            'BACKEND_TEST_SHARDS_FILE_PATH',
+            self.shards_file,
+        )
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.temp_dir.cleanup()
+
+    def test_returns_empty_list_when_all_modules_registered(self) -> None:
+        def mock_walk(path: str) -> List:  # pylint: disable=unused-argument
+            if path == 'core':
+                return iter([('core/domain', [], ['foo_test.py'])])
+            return iter([])
+
+        def mock_listdir(
+            path: str,
+        ) -> List[str]:  # pylint: disable=unused-argument
+            return []
+
+        os_walk_swap = self.swap(os, 'walk', mock_walk)
+        os_listdir_swap = self.swap(os, 'listdir', mock_listdir)
+
+        with self.shards_file_swap:
+            with os_walk_swap:
+                with os_listdir_swap:
+                    result = (
+                        check_tests_are_captured_in_ci.get_unregistered_backend_test_modules()
+                    )
+        self.assertEqual(result, [])
+
+    def test_returns_module_missing_from_shards(self) -> None:
+        def mock_walk(path: str) -> List:  # pylint: disable=unused-argument
+            if path == 'core':
+                return iter(
+                    [
+                        (
+                            'core/domain',
+                            [],
+                            ['foo_test.py', 'new_feature_test.py'],
+                        )
+                    ]
+                )
+            return iter([])
+
+        def mock_listdir(
+            path: str,
+        ) -> List[str]:  # pylint: disable=unused-argument
+            return []
+
+        os_walk_swap = self.swap(os, 'walk', mock_walk)
+        os_listdir_swap = self.swap(os, 'listdir', mock_listdir)
+
+        with self.shards_file_swap:
+            with os_walk_swap:
+                with os_listdir_swap:
+                    result = (
+                        check_tests_are_captured_in_ci.get_unregistered_backend_test_modules()
+                    )
+        self.assertEqual(result, ['core.domain.new_feature_test'])
+
+    def test_returns_unregistered_root_level_module(self) -> None:
+        def mock_walk(path: str) -> List:  # pylint: disable=unused-argument
+            return iter([])
+
+        def mock_listdir(
+            path: str,
+        ) -> List[str]:  # pylint: disable=unused-argument
+            return ['new_root_test.py', 'readme.md']
+
+        os_walk_swap = self.swap(os, 'walk', mock_walk)
+        os_listdir_swap = self.swap(os, 'listdir', mock_listdir)
+
+        with self.shards_file_swap:
+            with os_walk_swap:
+                with os_listdir_swap:
+                    result = (
+                        check_tests_are_captured_in_ci.get_unregistered_backend_test_modules()
+                    )
+        self.assertEqual(result, ['new_root_test'])
