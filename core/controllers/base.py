@@ -437,7 +437,7 @@ class BaseHandler(
                 pass
             elif arg == 'source':
                 source_url = self.request.get('source')
-                regex_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'  # pylint: disable=line-too-long
+                regex_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[!*\(\),]|%[0-9a-fA-F][0-9a-fA-F])+'  # pylint: disable=line-too-long
                 regex_verified_url = re.findall(regex_pattern, source_url)
                 if not regex_verified_url:
                     raise self.InvalidInputException('Not a valid source url.')
