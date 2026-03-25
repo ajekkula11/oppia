@@ -483,7 +483,7 @@ class AdminHandler(
             if action == 'reload_exploration':
                 exploration_id = self.normalized_payload.get('exploration_id')
                 if exploration_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'exploration_id\' must be provided when the'
                         ' action is reload_exploration.'
                     )
@@ -491,7 +491,7 @@ class AdminHandler(
             elif action == 'reload_collection':
                 collection_id = self.normalized_payload.get('collection_id')
                 if collection_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'collection_id\' must be provided when the'
                         ' action is reload_collection.'
                     )
@@ -501,7 +501,7 @@ class AdminHandler(
                     'num_dummy_exps_to_generate'
                 )
                 if num_dummy_exps_to_generate is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'num_dummy_exps_to_generate\' must be provided'
                         ' when the action is generate_dummy_explorations.'
                     )
@@ -509,7 +509,7 @@ class AdminHandler(
                     'num_dummy_exps_to_publish'
                 )
                 if num_dummy_exps_to_publish is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'num_dummy_exps_to_publish\' must be provided'
                         ' when the action is generate_dummy_explorations.'
                     )
@@ -529,7 +529,7 @@ class AdminHandler(
                     )
                 )
                 if num_dummy_translation_opportunities_to_generate is None:
-                    raise Exception(
+                    raise ValueError(
                         'The '
                         '\'num_dummy_translation_opportunities_to_generate\' '
                         'must be provided when the action is '
@@ -542,7 +542,7 @@ class AdminHandler(
             elif action == 'generate_dummy_blog_post':
                 blog_post_title = self.normalized_payload.get('blog_post_title')
                 if blog_post_title is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'blog_post_title\' must be provided when the'
                         ' action is generate_dummy_blog_post.'
                     )
@@ -560,7 +560,7 @@ class AdminHandler(
             elif action == 'generate_dummy_question_suggestions':
                 skill_id = self.normalized_payload.get('skill_id')
                 if skill_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'skill_id\' must be provided when'
                         ' the action is _generate_dummy_question_suggestions.'
                     )
@@ -581,7 +581,7 @@ class AdminHandler(
             elif action == 'generate_dummy_stories':
                 topic_id = self.normalized_payload.get('topic_id')
                 if topic_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'topic_id\' must be provided when'
                         ' the action is generate_dummy_stories.'
                     )
@@ -600,7 +600,7 @@ class AdminHandler(
             elif action == 'generate_dummy_chapters':
                 story_id = self.normalized_payload.get('story_id')
                 if story_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'story_id\' must be provided when'
                         ' the action is generate_dummy_chapters.'
                     )
@@ -619,7 +619,7 @@ class AdminHandler(
             elif action == 'upload_topic_similarities':
                 data = self.normalized_payload.get('data')
                 if data is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'data\' must be provided when the action'
                         ' is upload_topic_similarities.'
                     )
@@ -627,7 +627,7 @@ class AdminHandler(
             elif action == 'regenerate_topic_related_opportunities':
                 topic_id = self.normalized_payload.get('topic_id')
                 if topic_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'topic_id\' must be provided when the action'
                         ' is regenerate_topic_related_opportunities.'
                     )
@@ -638,7 +638,7 @@ class AdminHandler(
             elif action == 'rollback_exploration_to_safe_state':
                 exp_id = self.normalized_payload.get('exp_id')
                 if exp_id is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'exp_id\' must be provided when the action'
                         ' is rollback_exploration_to_safe_state.'
                     )
@@ -657,19 +657,19 @@ class AdminHandler(
                     'platform_param_name'
                 )
                 if platform_param_name is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'platform_param_name\' must be provided when '
                         'the action is update_platform_parameter_rules.'
                     )
                 new_rules = self.normalized_payload.get('new_rules')
                 if new_rules is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'new_rules\' must be provided when the action'
                         ' is update_platform_parameter_rules.'
                     )
                 commit_message = self.normalized_payload.get('commit_message')
                 if commit_message is None:
-                    raise Exception(
+                    raise ValueError(
                         'The \'commit_message\' must be provided when the '
                         'action is update_platform_parameter_rules.'
                     )
@@ -2457,7 +2457,7 @@ class AdminRoleHandler(
         if filter_criterion == feconf.USER_FILTER_CRITERION_ROLE:
             role = request_data.get(feconf.USER_FILTER_CRITERION_ROLE)
             if role is None:
-                raise Exception(
+                raise ValueError(
                     'The role must be provided when the filter criterion '
                     'is \'role\'.'
                 )
@@ -2483,7 +2483,7 @@ class AdminRoleHandler(
             assert filter_criterion == (feconf.USER_FILTER_CRITERION_USERNAME)
             username = request_data.get(feconf.USER_FILTER_CRITERION_USERNAME)
             if username is None:
-                raise Exception(
+                raise ValueError(
                     'The username must be provided when the filter criterion '
                     'is \'username\'.'
                 )
