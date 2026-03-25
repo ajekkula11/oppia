@@ -721,7 +721,7 @@ class AdminHandler(
                 user_services.get_system_user(), exploration_id
             )
         else:
-            raise Exception('Cannot reload an exploration in production.')
+            raise RuntimeError('Cannot reload an exploration in production.')
 
     def _create_dummy_question(
         self,
@@ -864,7 +864,7 @@ class AdminHandler(
         """
         assert self.user_id is not None
         if not constants.DEV_MODE:
-            raise Exception('Cannot load new blog post in production mode.')
+            raise RuntimeError('Cannot load new blog post in production mode.')
 
         blog_post = blog_services.create_new_blog_post(self.user_id)
         fs = fs_services.GcsFileSystem('blog_post', blog_post.id)
@@ -1192,7 +1192,7 @@ class AdminHandler(
             topic_services.publish_story(topic_id_1, story_id, self.user_id)
             topic_services.publish_topic(topic_id_1, self.user_id)
         else:
-            raise Exception('Cannot load new structures data in production.')
+            raise RuntimeError('Cannot load new structures data in production.')
 
     def _generate_dummy_skill_and_questions(self) -> None:
         """Generate and loads the database with a skill and 15 questions
@@ -1229,7 +1229,7 @@ class AdminHandler(
                     self.user_id, question_id, skill_id, random_difficulty
                 )
         else:
-            raise Exception('Cannot generate dummy skills in production.')
+            raise RuntimeError('Cannot generate dummy skills in production.')
 
     def _reload_collection(self, collection_id: str) -> None:
         """Reloads the collection in dev_mode corresponding to the given
@@ -1252,7 +1252,7 @@ class AdminHandler(
                 user_services.get_system_user(), collection_id
             )
         else:
-            raise Exception('Cannot reload a collection in production.')
+            raise RuntimeError('Cannot reload a collection in production.')
 
     def _generate_dummy_explorations(
         self, num_dummy_exps_to_generate: int, num_dummy_exps_to_publish: int
@@ -1302,7 +1302,7 @@ class AdminHandler(
                 exploration_ids_to_publish
             )
         else:
-            raise Exception('Cannot generate dummy explorations in production.')
+            raise RuntimeError('Cannot generate dummy explorations in production.')
 
     def _generate_dummy_translation_opportunities(
         self, num_dummy_translation_opportunities_to_generate: int
@@ -1601,7 +1601,7 @@ class AdminHandler(
             if initial_dummy_opportunites_generation:
                 topic_services.publish_topic(topic_id, self.user_id)
         else:
-            raise Exception('Cannot load new structures data in production.')
+            raise RuntimeError('Cannot load new structures data in production.')
 
     def _generate_dummy_classroom(self) -> None:
         """Generate and loads the database with a classroom.
@@ -1951,7 +1951,7 @@ class AdminHandler(
 
             classroom_config_services.create_new_classroom(classroom_1)
         else:
-            raise Exception('Cannot generate dummy classroom in production.')
+            raise RuntimeError('Cannot generate dummy classroom in production.')
 
     def _generate_dummy_question_suggestions(
         self, skill_id: str, num_dummy_question_suggestions_generate: int
@@ -2129,7 +2129,7 @@ class AdminHandler(
                     topic_id, story_id, str(self.user_id)
                 )
         else:
-            raise Exception('Cannot generate dummy stories in production.')
+            raise RuntimeError('Cannot generate dummy stories in production.')
 
     def _generate_dummy_chapters(
         self, story_id: str, num_dummy_chapters_to_generate: int
@@ -2346,7 +2346,7 @@ class AdminHandler(
                 story.corresponding_topic_id, story_id, str(self.user_id)
             )
         else:
-            raise Exception('Cannot generate dummy chapters in production.')
+            raise RuntimeError('Cannot generate dummy chapters in production.')
 
 
 class AdminRoleHandlerNormalizedGetRequestDict(TypedDict):
