@@ -2148,7 +2148,7 @@ class GenerateDummyChaptersTest(test_utils.GenericTestBase):
                     user_services.get_system_user(), exploration_id
                 )
             else:
-                raise Exception('Cannot reload an exploration in production.')
+                raise RuntimeError('Cannot reload an exploration in production.')
 
         reload_exploration(
             self.get_user_id_from_email(self.CURRICULUM_ADMIN_EMAIL), '6'
