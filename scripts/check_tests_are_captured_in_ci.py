@@ -267,7 +267,7 @@ def main() -> None:
     )
 
     if len(acceptance_test_suites_difference) > 0:
-        raise Exception(
+        raise ValueError(
             'Acceptance test suites and CI test suites are not in sync. '
             'The following suites are not in sync: %s. Please update the '
             'CI config file for acceptance tests at core/tests/ci-test-'
@@ -288,7 +288,7 @@ def main() -> None:
         sorted(webdriverio_test_suite_modules)
         == sorted(webdriverio_conf_test_modules)
     ):
-        raise Exception(
+        raise ValueError(
             'One or more test module from webdriverio or webdriverio_desktop '
             'directory is missing from wdio.conf.js. Please update wdio.conf.js'
             ' with the missing test modules.'
@@ -305,7 +305,7 @@ def main() -> None:
     )
 
     if len(e2e_test_suites_difference) > 0:
-        raise Exception(
+        raise ValueError(
             'E2E test suites and CI test suites are not in sync. The following '
             'suites are not in sync: %s. Please update the CI config file for '
             'e2e tests at core/tests/ci-test-suite-configs/e2e.json with the '
