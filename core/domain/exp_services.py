@@ -387,6 +387,27 @@ def get_all_exploration_summaries() -> Dict[str, exp_domain.ExplorationSummary]:
     return exp_fetchers.get_exploration_summaries_from_models(
         exp_models.ExpSummaryModel.get_all().fetch()
     )
+  
+    
+def _get_exploration_filename(exploration: exp_domain.Exploration) -> str:
+    """Returns a sanitized filename for the exploration YAML file.
+
+    Args:
+        exploration: Exploration. The exploration domain object.
+
+    Returns:
+        str. The filename to use for the exported YAML file.
+    """
+    if not exploration.title:
+        return 'Unpublished_exploration.yaml'
+    exploration_file_name = re.sub(
+        r'[^A-Za-z0-9_ -]+', '', exploration.title
+    )
+    # Trim whitespace when checking to handle potential
+    # whitespace-only 'exploration_file_name'.
+    if not exploration_file_name.strip():
+        return 'exploration.yaml'
+    return '%s.yaml' % exploration_file_name
 
 
 # Methods for exporting states and explorations to other formats.
@@ -415,18 +436,7 @@ def export_to_zip_file(
     with zipfile.ZipFile(
         temp_file, mode='w', compression=zipfile.ZIP_DEFLATED
     ) as zfile:
-        if not exploration.title:
-            zfile.writestr('Unpublished_exploration.yaml', yaml_repr)
-        else:
-            exploration_file_name = re.sub(
-                r'[^A-Za-z0-9_ -]+', '', exploration.title
-            )
-            # Trim whitespace when checking to handle potential
-            # whitespace-only 'exploration_file_name'.
-            if not exploration_file_name.strip():
-                zfile.writestr('exploration.yaml', yaml_repr)
-            else:
-                zfile.writestr('%s.yaml' % exploration_file_name, yaml_repr)
+        zfile.writestr(_get_exploration_filename(exploration), yaml_repr)
 
         fs = fs_services.GcsFileSystem(
             feconf.ENTITY_TYPE_EXPLORATION, exploration_id
