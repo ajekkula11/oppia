@@ -1193,6 +1193,30 @@ class AdminHandler(
             topic_services.publish_topic(topic_id_1, self.user_id)
         else:
             raise Exception('Cannot load new structures data in production.')
+    def _generate_dummy_questions_for_skill(
+        self, skill_id: str, skill_name: str
+    ) -> None:
+        """Generates 15 dummy questions linked to the given skill.
+
+        Args:
+            skill_id: str. The ID of the skill to link questions to.
+            skill_name: str. The name of the skill.
+        """
+        assert self.user_id is not None
+        for i in range(15):
+            question_id = question_services.get_new_question_id()
+            question_name = 'Question number %s %s' % (str(i), skill_name)
+            question = self._create_dummy_question(
+                question_id, question_name, [skill_id]
+            )
+            question_services.add_question(self.user_id, question)
+            question_difficulty = list(
+                constants.SKILL_DIFFICULTY_LABEL_TO_FLOAT.values()
+            )
+            random_difficulty = random.choice(question_difficulty)
+            question_services.create_new_question_skill_link(
+                self.user_id, question_id, skill_id, random_difficulty
+            )
 
     def _generate_dummy_skill_and_questions(self) -> None:
         """Generate and loads the database with a skill and 15 questions
@@ -1213,23 +1237,10 @@ class AdminHandler(
             skill = self._create_dummy_skill(
                 skill_id, skill_name, '<p>Dummy Explanation 1</p>'
             )
-            skill_services.save_new_skill(self.user_id, skill)
-            for i in range(15):
-                question_id = question_services.get_new_question_id()
-                question_name = 'Question number %s %s' % (str(i), skill_name)
-                question = self._create_dummy_question(
-                    question_id, question_name, [skill_id]
-                )
-                question_services.add_question(self.user_id, question)
-                question_difficulty = list(
-                    constants.SKILL_DIFFICULTY_LABEL_TO_FLOAT.values()
-                )
-                random_difficulty = random.choice(question_difficulty)
-                question_services.create_new_question_skill_link(
-                    self.user_id, question_id, skill_id, random_difficulty
-                )
+            skill_services.save_new_skill(self.user_id, skill)  
+            self._generate_dummy_questions_for_skill(skill_id, skill_name)
         else:
-            raise Exception('Cannot generate dummy skills in production.')
+            raise RuntimeError('Cannot generate dummy skills in production.')
 
     def _reload_collection(self, collection_id: str) -> None:
         """Reloads the collection in dev_mode corresponding to the given
