@@ -210,6 +210,39 @@ def does_classroom_exist(
     return test_does_classroom_exist
 
 
+def _check_user_authorization(
+    handler_self: _SelfBaseHandlerType,
+    action: str,
+    unauthorized_message: str,
+) -> None:
+    """Template method enforcing the standard login-and-action guard.
+
+    This helper eliminates the copy-paste guard pattern that was duplicated
+    across 70+ decorator functions. Each decorator previously repeated:
+        1. Check user_id (raise NotLoggedInException if missing)
+        2. Check action in user.actions (raise UnauthorizedUserException if not)
+
+    Args:
+        handler_self: BaseHandler. The handler instance (i.e., `self` inside
+            the decorator's inner function).
+        action: str. The role_services action constant to check against
+            the user's allowed actions.
+        unauthorized_message: str. The message to include in the
+            UnauthorizedUserException if the action check fails.
+
+    Raises:
+        base.UserFacingExceptions.NotLoggedInException: If the user is
+            not logged in.
+        handler_self.UnauthorizedUserException: If the user does not have
+            the required action.
+    """
+    if not handler_self.user_id:
+        raise base.UserFacingExceptions.NotLoggedInException
+
+    if action not in handler_self.user.actions:
+        raise handler_self.UnauthorizedUserException(unauthorized_message)
+
+
 def can_play_exploration(
     handler: Callable[..., _GenericHandlerFunctionReturnType],
 ) -> Callable[..., _GenericHandlerFunctionReturnType]:
@@ -651,15 +684,12 @@ def can_access_blog_admin_page(
             UnauthorizedUserException. The user does not have credentials to
                 access the blog admin page.
         """
-        if not self.user_id:
-            raise base.UserFacingExceptions.NotLoggedInException
-
-        if role_services.ACTION_ACCESS_BLOG_ADMIN_PAGE in self.user.actions:
-            return handler(self, **kwargs)
-
-        raise self.UnauthorizedUserException(
-            'You do not have credentials to access blog admin page.'
+        _check_user_authorization(
+            self,
+            role_services.ACTION_ACCESS_BLOG_ADMIN_PAGE,
+            'You do not have credentials to access blog admin page.',
         )
+        return handler(self, **kwargs)
 
     return test_can_access_blog_admin_page
 
@@ -698,15 +728,12 @@ def can_manage_blog_post_editors(
             UnauthorizedUserException. The user does not have credentials to
                 manage blog post editors..
         """
-        if not self.user_id:
-            raise base.UserFacingExceptions.NotLoggedInException
-
-        if role_services.ACTION_MANAGE_BLOG_POST_EDITORS in self.user.actions:
-            return handler(self, **kwargs)
-
-        raise self.UnauthorizedUserException(
-            'You do not have credentials to add or remove blog post editors.'
+        _check_user_authorization(
+            self,
+            role_services.ACTION_MANAGE_BLOG_POST_EDITORS,
+            'You do not have credentials to add or remove blog post editors.',
         )
+        return handler(self, **kwargs)
 
     return test_can_manage_blog_post_editors
 
@@ -743,15 +770,12 @@ def can_access_blog_dashboard(
             UnauthorizedUserException. The user does not have credentials to
                 access the blog dashboard.
         """
-        if not self.user_id:
-            raise base.UserFacingExceptions.NotLoggedInException
-
-        if role_services.ACTION_ACCESS_BLOG_DASHBOARD in self.user.actions:
-            return handler(self, **kwargs)
-
-        raise self.UnauthorizedUserException(
-            'You do not have credentials to access blog dashboard page.'
+        _check_user_authorization(
+            self,
+            role_services.ACTION_ACCESS_BLOG_DASHBOARD,
+            'You do not have credentials to access blog dashboard page.',
         )
+        return handler(self, **kwargs)
 
     return test_can_access_blog_dashboard
 
@@ -904,15 +928,12 @@ def can_access_moderator_page(
             UnauthorizedUserException. The user does not have credentials to
                 access the moderator page.
         """
-        if not self.user_id:
-            raise base.UserFacingExceptions.NotLoggedInException
-
-        if role_services.ACTION_ACCESS_MODERATOR_PAGE in self.user.actions:
-            return handler(self, **kwargs)
-
-        raise self.UnauthorizedUserException(
-            'You do not have credentials to access moderator page.'
+        _check_user_authorization(
+            self,
+            role_services.ACTION_ACCESS_MODERATOR_PAGE,
+            'You do not have credentials to access moderator page.',
         )
+        return handler(self, **kwargs)
 
     return test_can_access_moderator_page
 
@@ -950,17 +971,12 @@ def can_access_release_coordinator_page(
             UnauthorizedUserException. The user does not have credentials to
                 access the release coordinator page.
         """
-        if not self.user_id:
-            raise base.UserFacingExceptions.NotLoggedInException
-
-        if role_services.ACTION_ACCESS_RELEASE_COORDINATOR_PAGE in (
-            self.user.actions
-        ):
-            return handler(self, **kwargs)
-
-        raise self.UnauthorizedUserException(
-            'You do not have credentials to access release coordinator page.'
+        _check_user_authorization(
+            self,
+            role_services.ACTION_ACCESS_RELEASE_COORDINATOR_PAGE,
+            'You do not have credentials to access release coordinator page.',
         )
+        return handler(self, **kwargs)
 
     return test_can_access_release_coordinator_page
 
