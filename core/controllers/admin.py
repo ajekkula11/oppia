@@ -251,6 +251,141 @@ class AdminHandlerNormalizePayloadDict(TypedDict):
     default_value: Dict[str, parameter_domain.PlatformDataTypes]
 
 
+
+# ---------------------------------------------------------------------------
+# Command pattern infrastructure (630:P3 Issue #31)
+# ---------------------------------------------------------------------------
+
+class AdminCommand:
+    """Abstract base class for admin action commands.
+
+    Each concrete subclass encapsulates one admin action: its required
+    parameters, validation logic, and execution.  AdminHandler.post()
+    delegates to these commands via COMMAND_REGISTRY, eliminating the
+    15-branch if/elif dispatch chain.
+    """
+
+    def __init__(self, handler: 'AdminHandler') -> None:
+        self.handler = handler
+        self.payload = handler.normalized_payload
+
+    def validate(self) -> None:
+        """Validates required parameters. Raises Exception on failure."""
+        raise NotImplementedError
+
+    def execute(self) -> dict:
+        """Executes the command and returns a result dict (may be empty)."""
+        raise NotImplementedError
+
+
+class ReloadExplorationCommand(AdminCommand):
+    """Reloads a single exploration from the exploration yaml."""
+
+    def validate(self) -> None:
+        self.exploration_id = self.payload.get('exploration_id')
+        if self.exploration_id is None:
+            raise Exception(
+                'The \'exploration_id\' must be provided when the'
+                ' action is reload_exploration.'
+            )
+
+    def execute(self) -> dict:
+        self.handler._reload_exploration(self.exploration_id)  # pylint: disable=protected-access
+        return {}
+
+
+class ReloadCollectionCommand(AdminCommand):
+    """Reloads a single collection from the collection yaml."""
+
+    def validate(self) -> None:
+        self.collection_id = self.payload.get('collection_id')
+        if self.collection_id is None:
+            raise Exception(
+                'The \'collection_id\' must be provided when the'
+                ' action is reload_collection.'
+            )
+
+    def execute(self) -> dict:
+        self.handler._reload_collection(self.collection_id)  # pylint: disable=protected-access
+        return {}
+
+
+class GenerateDummyExplorationsCommand(AdminCommand):
+    """Generates and optionally publishes dummy explorations."""
+
+    def validate(self) -> None:
+        self.num_to_generate = self.payload.get('num_dummy_exps_to_generate')
+        if self.num_to_generate is None:
+            raise Exception(
+                'The \'num_dummy_exps_to_generate\' must be provided'
+                ' when the action is generate_dummy_explorations.'
+            )
+        self.num_to_publish = self.payload.get('num_dummy_exps_to_publish')
+        if self.num_to_publish is None:
+            raise Exception(
+                'The \'num_dummy_exps_to_publish\' must be provided'
+                ' when the action is generate_dummy_explorations.'
+            )
+        if self.num_to_generate < self.num_to_publish:
+            raise self.handler.InvalidInputException(
+                'Generate count cannot be less than publish count'
+            )
+
+    def execute(self) -> dict:
+        self.handler._generate_dummy_explorations(  # pylint: disable=protected-access
+            self.num_to_generate, self.num_to_publish
+        )
+        return {}
+
+
+class RegeneratTopicOpportunitiesCommand(AdminCommand):
+    """Regenerates opportunities related to a topic."""
+
+    def validate(self) -> None:
+        self.topic_id = self.payload.get('topic_id')
+        if self.topic_id is None:
+            raise Exception(
+                'The \'topic_id\' must be provided when the action'
+                ' is regenerate_topic_related_opportunities.'
+            )
+
+    def execute(self) -> dict:
+        opportunities_count = (
+            opportunity_services.regenerate_opportunities_related_to_topic(
+                self.topic_id, delete_existing_opportunities=True
+            )
+        )
+        return {'opportunities_count': opportunities_count}
+
+
+class RollbackExplorationCommand(AdminCommand):
+    """Rolls back an exploration to its last safe state."""
+
+    def validate(self) -> None:
+        self.exp_id = self.payload.get('exp_id')
+        if self.exp_id is None:
+            raise Exception(
+                'The \'exp_id\' must be provided when the action'
+                ' is rollback_exploration_to_safe_state.'
+            )
+
+    def execute(self) -> dict:
+        version = exp_services.rollback_exploration_to_safe_state(self.exp_id)
+        return {'version': version}
+
+
+# Maps action strings to their Command classes.  To add a new admin action,
+# create a new AdminCommand subclass and register it here — no changes to
+# AdminHandler.post() are required.
+COMMAND_REGISTRY: dict = {
+    'reload_exploration': ReloadExplorationCommand,
+    'reload_collection': ReloadCollectionCommand,
+    'generate_dummy_explorations': GenerateDummyExplorationsCommand,
+    'regenerate_topic_related_opportunities': RegeneratTopicOpportunitiesCommand,
+    'rollback_exploration_to_safe_state': RollbackExplorationCommand,
+}
+
+
 class AdminHandler(
     base.BaseHandler[AdminHandlerNormalizePayloadDict, Dict[str, str]]
 ):
@@ -480,48 +615,12 @@ class AdminHandler(
         action = self.normalized_payload.get('action')
         try:
             result = {}
-            if action == 'reload_exploration':
-                exploration_id = self.normalized_payload.get('exploration_id')
-                if exploration_id is None:
-                    raise Exception(
-                        'The \'exploration_id\' must be provided when the'
-                        ' action is reload_exploration.'
-                    )
-                self._reload_exploration(exploration_id)
-            elif action == 'reload_collection':
-                collection_id = self.normalized_payload.get('collection_id')
-                if collection_id is None:
-                    raise Exception(
-                        'The \'collection_id\' must be provided when the'
-                        ' action is reload_collection.'
-                    )
-                self._reload_collection(collection_id)
-            elif action == 'generate_dummy_explorations':
-                num_dummy_exps_to_generate = self.normalized_payload.get(
-                    'num_dummy_exps_to_generate'
-                )
-                if num_dummy_exps_to_generate is None:
-                    raise Exception(
-                        'The \'num_dummy_exps_to_generate\' must be provided'
-                        ' when the action is generate_dummy_explorations.'
-                    )
-                num_dummy_exps_to_publish = self.normalized_payload.get(
-                    'num_dummy_exps_to_publish'
-                )
-                if num_dummy_exps_to_publish is None:
-                    raise Exception(
-                        'The \'num_dummy_exps_to_publish\' must be provided'
-                        ' when the action is generate_dummy_explorations.'
-                    )
-
-                if num_dummy_exps_to_generate < num_dummy_exps_to_publish:
-                    raise self.InvalidInputException(
-                        'Generate count cannot be less than publish count'
-                    )
-
-                self._generate_dummy_explorations(
-                    num_dummy_exps_to_generate, num_dummy_exps_to_publish
-                )
+            if action in COMMAND_REGISTRY:
+                # Command pattern dispatch (630:P3 Issue #31):
+                # look up the command class, validate, and execute.
+                command = COMMAND_REGISTRY[action](self)
+                command.validate()
+                result = command.execute()
             elif action == 'generate_dummy_translation_opportunities':
                 num_dummy_translation_opportunities_to_generate = (
                     self.normalized_payload.get(
@@ -624,28 +723,6 @@ class AdminHandler(
                         ' is upload_topic_similarities.'
                     )
                 recommendations_services.update_topic_similarities(data)
-            elif action == 'regenerate_topic_related_opportunities':
-                topic_id = self.normalized_payload.get('topic_id')
-                if topic_id is None:
-                    raise Exception(
-                        'The \'topic_id\' must be provided when the action'
-                        ' is regenerate_topic_related_opportunities.'
-                    )
-                opportunities_count = opportunity_services.regenerate_opportunities_related_to_topic(
-                    topic_id, delete_existing_opportunities=True
-                )
-                result = {'opportunities_count': opportunities_count}
-            elif action == 'rollback_exploration_to_safe_state':
-                exp_id = self.normalized_payload.get('exp_id')
-                if exp_id is None:
-                    raise Exception(
-                        'The \'exp_id\' must be provided when the action'
-                        ' is rollback_exploration_to_safe_state.'
-                    )
-                version = exp_services.rollback_exploration_to_safe_state(
-                    exp_id
-                )
-                result = {'version': version}
             else:
                 # The handler schema defines the possible values of 'action'.
                 # If 'action' has a value other than those defined in the
