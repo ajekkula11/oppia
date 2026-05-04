@@ -19,6 +19,7 @@ from __future__ import annotations
 from core import feconf
 from core.constants import constants
 from core.controllers import acl_decorators, base
+from core.controllers import email_facade
 from core.domain import (
     app_feedback_report_services,
     beam_job_services,
@@ -128,12 +129,7 @@ class CronMailReviewersContributorDashboardSuggestionsHandler(
         """
         # Only execute this job if it's possible to send the emails and there
         # are reviewers to notify.
-        server_can_send_emails = (
-            platform_parameter_services.get_platform_parameter_value(
-                platform_parameter_list.ParamName.SERVER_CAN_SEND_EMAILS.value
-            )
-        )
-        if not server_can_send_emails:
+        if not email_facade.EmailFacade.can_send_emails():
             return self.render_json({})
         if not platform_parameter_services.get_platform_parameter_value(
             platform_parameter_list.ParamName.CONTRIBUTOR_DASHBOARD_REVIEWER_EMAILS_IS_ENABLED.value
@@ -170,12 +166,7 @@ class CronMailAdminContributorDashboardBottlenecksHandler(
         to alert the admins that specific suggestions have been waiting too long
         to get reviewed.
         """
-        server_can_send_emails = (
-            platform_parameter_services.get_platform_parameter_value(
-                platform_parameter_list.ParamName.SERVER_CAN_SEND_EMAILS.value
-            )
-        )
-        if not server_can_send_emails:
+        if not email_facade.EmailFacade.can_send_emails():
             return self.render_json({})
 
         admin_ids = user_services.get_user_ids_by_role(
@@ -234,12 +225,7 @@ class CronMailReviewerNewSuggestionsHandler(
         """Sends email notifications to reviewers about new
         suggestions on the Contributor Dashboard.
         """
-        server_can_send_emails = (
-            platform_parameter_services.get_platform_parameter_value(
-                platform_parameter_list.ParamName.SERVER_CAN_SEND_EMAILS.value
-            )
-        )
-        if not server_can_send_emails:
+        if not email_facade.EmailFacade.can_send_emails():
             return self.render_json({})
 
         if not platform_parameter_services.get_platform_parameter_value(
@@ -400,12 +386,7 @@ class CronMailChapterPublicationsNotificationsHandler(
         and upcoming (within CHAPTER_PUBLICATION_NOTICE_PERIOD_IN_DAYS days)
         chapter launches.
         """
-        server_can_send_emails = (
-            platform_parameter_services.get_platform_parameter_value(
-                platform_parameter_list.ParamName.SERVER_CAN_SEND_EMAILS.value
-            )
-        )
-        if not server_can_send_emails:
+        if not email_facade.EmailFacade.can_send_emails():
             return self.render_json({})
 
         admin_ids = user_services.get_user_ids_by_role(
